@@ -6,7 +6,7 @@ app = Flask(__name__)
 mongodb_client = PyMongo(
     app,
     uri=
-    "mongodb+srv://eugene_ivashkevich:1211@mongo-heroku-cluster.gi7cs.mongodb.net/myFirstDatabase?retryWrites=true&w=majority"
+    "mongodb+srv://eugene_ivashkevich:wpLV8ZJcC1spQoc6@aic-win.ku48g.mongodb.net/aic-win?retryWrites=true&w=majority"
 )
 db = mongodb_client.db
 
@@ -20,11 +20,11 @@ def add_one():
 @app.route("/test", methods=['GET', 'POST'])
 def test():
     if request.method == "GET":
-        return jsonify({"responce": "Get Request Called"})
+        return jsonify({"response": "Get Request Called"})
     elif request.method == "POST":
         req_Json = request.json
         name = req_Json['name']
-        return jsonify({"responce": "Hi " + name})
+        return jsonify({"response": "Hi " + name})
 
 
 @app.route("/")
