@@ -1,7 +1,7 @@
 from flask_pymongo import PyMongo
-import flask
+from flask import Flask, request, jsonify
 
-app = flask.Flask(__name__)
+app = Flask(__name__)
 
 mongodb_client = PyMongo(
     app,
@@ -14,7 +14,17 @@ db = mongodb_client.db
 @app.route("/add_one")
 def add_one():
     db.todos.insert_one({'title': "todo title", 'body': "todo body"})
-    return flask.jsonify(message="success")
+    return jsonify(message="success")
+
+
+@app.route("/test", methods=['GET', 'POST'])
+def test():
+    if request.method == "GET":
+        return jsonify({"responce": "Get Request Called"})
+    elif request.method == "POST":
+        req_Json = request.json
+        name = req_Json['name']
+        return jsonify({"responce": "Hi " + name})
 
 
 @app.route("/")
