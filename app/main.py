@@ -1,20 +1,22 @@
 from flask import Flask, render_template, request, url_for, redirect, session
 import pymongo
 import bcrypt
-#set app as a Flask instance 
+#set app as a Flask instance
 app = Flask(__name__)
 #encryption relies on secret keys so they could be run
 app.secret_key = "testing"
-#connoct to your Mongo DB database 
-client = pymongo.MongoClient("mongodb+srv://eugene_ivashkevich:wpLV8ZJcC1spQoc6@aic-win.ku48g.mongodb.net/aic-win?retryWrites=true&w=majority")
-
+#connoct to your Mongo DB database
+client = pymongo.MongoClient(
+    "mongodb+srv://eugene_ivashkevich:wpLV8ZJcC1spQoc6@aic-win.ku48g.mongodb.net/aic-win?retryWrites=true&w=majority"
+)
 
 #get the database name
 db = client.get_database('total_records')
 #get the particular collection that contains the data
 records = db.register
 
-#assign URLs to have a particular route 
+
+#assign URLs to have a particular route
 @app.route("/", methods=['post', 'get'])
 def index():
     message = ''
@@ -26,7 +28,7 @@ def index():
         email = request.form.get("email")
         password1 = request.form.get("password1")
         password2 = request.form.get("password2")
-        #if found in database showcase that it's found 
+        #if found in database showcase that it's found
         user_found = records.find_one({"name": user})
         email_found = records.find_one({"email": email})
         if user_found:
@@ -45,14 +47,13 @@ def index():
             user_input = {'name': user, 'email': email, 'password': hashed}
             #insert it in the record collection
             records.insert_one(user_input)
-            
+
             #find the new created account and its email
             user_data = records.find_one({"email": email})
             new_email = user_data['email']
             #if registered redirect to logged in as the registered user
             return render_template('logged_in.html', email=new_email)
     return render_template('index.html')
-
 
 
 @app.route("/login", methods=["POST", "GET"])
@@ -84,6 +85,7 @@ def login():
             return render_template('login.html', message=message)
     return render_template('login.html', message=message)
 
+
 @app.route('/logged_in')
 def logged_in():
     if "email" in session:
@@ -91,6 +93,7 @@ def logged_in():
         return render_template('logged_in.html', email=email)
     else:
         return redirect(url_for("login"))
+
 
 @app.route("/logout", methods=["POST", "GET"])
 def logout():
