@@ -10,6 +10,7 @@ yapf = "*"
 flask-pymongo = "*"
 pymongo = {extras = ["srv"], version = "*"}
 python-dotenv = "*"
+bcrypt = "*"
 
 [dev-packages]
 
