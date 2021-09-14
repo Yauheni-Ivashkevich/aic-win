@@ -1,53 +1,101 @@
-from flask_pymongo import PyMongo
-from flask import Flask, request, jsonify
-from pymongo.errors import BulkWriteError
-
+from flask import Flask, render_template, request, url_for, redirect, session
+import pymongo
+import bcrypt
+#set app as a Flask instance 
 app = Flask(__name__)
-
-mongodb_client = PyMongo(
-    app,
-    uri=
-    "mongodb+srv://eugene_ivashkevich:wpLV8ZJcC1spQoc6@aic-win.ku48g.mongodb.net/aic-win?retryWrites=true&w=majority"
-)
-db = mongodb_client.db
+#encryption relies on secret keys so they could be run
+app.secret_key = "testing"
+#connoct to your Mongo DB database 
+client = pymongo.MongoClient("mongodb+srv://eugene_ivashkevich:wpLV8ZJcC1spQoc6@aic-win.ku48g.mongodb.net/aic-win?retryWrites=true&w=majority")
 
 
-@app.route("/add_one")
-def add_one():
-    db.todos.insert_one({'title': "todo title", 'body': "todo body"})
-    return jsonify(message="success")
+#get the database name
+db = client.get_database('total_records')
+#get the particular collection that contains the data
+records = db.register
+
+#assign URLs to have a particular route 
+@app.route("/", methods=['post', 'get'])
+def index():
+    message = ''
+    #if method post in index
+    if "email" in session:
+        return redirect(url_for("logged_in"))
+    if request.method == "POST":
+        user = request.form.get("fullname")
+        email = request.form.get("email")
+        password1 = request.form.get("password1")
+        password2 = request.form.get("password2")
+        #if found in database showcase that it's found 
+        user_found = records.find_one({"name": user})
+        email_found = records.find_one({"email": email})
+        if user_found:
+            message = 'There already is a user by that name'
+            return render_template('index.html', message=message)
+        if email_found:
+            message = 'This email already exists in database'
+            return render_template('index.html', message=message)
+        if password1 != password2:
+            message = 'Passwords should match!'
+            return render_template('index.html', message=message)
+        else:
+            #hash the password and encode it
+            hashed = bcrypt.hashpw(password2.encode('utf-8'), bcrypt.gensalt())
+            #assing them in a dictionary in key value pairs
+            user_input = {'name': user, 'email': email, 'password': hashed}
+            #insert it in the record collection
+            records.insert_one(user_input)
+            
+            #find the new created account and its email
+            user_data = records.find_one({"email": email})
+            new_email = user_data['email']
+            #if registered redirect to logged in as the registered user
+            return render_template('logged_in.html', email=new_email)
+    return render_template('index.html')
 
 
-@app.route("/add_many")
-def add_many():
-    try:
-        todo_many = db.todos.insert_many([
-            {'_id': 1, 'title': "todo title one ", 'body': "todo body one "},
-            {'_id': 8, 'title': "todo title two", 'body': "todo body two"},
-            {'_id': 2, 'title': "todo title three", 'body': "todo body three"},
-            {'_id': 9, 'title': "todo title four", 'body': "todo body four"},
-            {'_id': 10, 'title': "todo title five", 'body': "todo body five"},
-            {'_id': 5, 'title': "todo title six", 'body': "todo body six"},
-        ], ordered=False)
-    except BulkWriteError as e:
-        return jsonify(message="duplicates encountered and ignored",
-                             details=e.details,
-                             inserted=e.details['nInserted'],
-                             duplicates=[x['op'] for x in e.details['writeErrors']])
 
-    return jsonify(message="success", insertedIds=todo_many.inserted_ids)
+@app.route("/login", methods=["POST", "GET"])
+def login():
+    message = 'Please login to your account'
+    if "email" in session:
+        return redirect(url_for("logged_in"))
 
+    if request.method == "POST":
+        email = request.form.get("email")
+        password = request.form.get("password")
 
-@app.route("/test", methods=['GET', 'POST'])
-def test():
-    if request.method == "GET":
-        return jsonify({"response": "Get Request Called"})
-    elif request.method == "POST":
-        req_Json = request.json
-        name = req_Json['name']
-        return jsonify({"response": "Hi " + name})
+        #check if email exists in database
+        email_found = records.find_one({"email": email})
+        if email_found:
+            email_val = email_found['email']
+            passwordcheck = email_found['password']
+            #encode the password and check if it matches
+            if bcrypt.checkpw(password.encode('utf-8'), passwordcheck):
+                session["email"] = email_val
+                return redirect(url_for('logged_in'))
+            else:
+                if "email" in session:
+                    return redirect(url_for("logged_in"))
+                message = 'Wrong password'
+                return render_template('login.html', message=message)
+        else:
+            message = 'Email not found'
+            return render_template('login.html', message=message)
+    return render_template('login.html', message=message)
 
+@app.route('/logged_in')
+def logged_in():
+    if "email" in session:
+        email = session["email"]
+        return render_template('logged_in.html', email=email)
+    else:
+        return redirect(url_for("login"))
 
-@app.route("/")
-def home_view():
-    return "<h1>Welcome to Geeks for Geeks</h1>"
+@app.route("/logout", methods=["POST", "GET"])
+def logout():
+    if "email" in session:
+        session.pop("email", None)
+        return render_template("signout.html")
+    else:
+        return render_template('index.html')
