@@ -11,6 +11,8 @@ flask-pymongo = "*"
 pymongo = {extras = ["srv"], version = "*"}
 python-dotenv = "*"
 bcrypt = "*"
+flask-wtf = "*"
+email-validator = "*"
 
 [dev-packages]
 
