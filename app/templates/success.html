@@ -2,7 +2,6 @@
 <html>
 <head>
 	<title>{{ title }}</title>
-	<link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='dist/css/bootstrap.min.css') }}">
 	<link href="https://fonts.googleapis.com/css?family=Montserrat:300" rel="stylesheet">
 </head>
 <body>
@@ -14,8 +13,7 @@
 
 	<div class="col-lg-12">
 		<div class="jumbotron">
-			<h1 class="display-4">Форма обратной связи</h1>
-			<p class="lead">Форма обратной связи AIC-Бухгалтерия</p>
+			<h1 class="display-4">Форма обратной связи AIC-Бухгалтерия</h1>
 			{% if success %}
 				<p class="lead text-success">Ваше сообщение было успешно отправлено!</p>
 			{% endif %}
