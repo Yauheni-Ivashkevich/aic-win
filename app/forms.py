@@ -1,13 +1,13 @@
 from flask_wtf import FlaskForm
 from wtforms import StringField, TextField, SubmitField, TextAreaField 
-from wtforms.validators import DataRequired, Email 
+from wtforms import ValidationError, validators 
 
 
 class ContactForm(FlaskForm):
     # проверяет, ввел ли пользователь хоть какую-информацию в поле
-    name = StringField("Fullname", validators=[DataRequired("Please enter your fullname.")])
+    name = StringField("Фамилия, Имя, Отчество", [validators.Required('Введите (Фамилию, Имя, Отчество)')])
     # проверяет, является ли введенный электронный адрес действующим. 
-    email = StringField("Email", validators=[Email("Please enter your email address.")])
-    topic = TextField("Please enter your topic message.")
-    message = TextAreaField("Please enter your message.")
-    submit = SubmitField("Send")
+    email = StringField("Email", [validators.Required('Ввведите Ваш email'), validators.Email()]) 
+    topic = TextField("Тема сообщения")
+    message = TextAreaField("Текст сообщения")
+    submit = SubmitField("Отправить") 

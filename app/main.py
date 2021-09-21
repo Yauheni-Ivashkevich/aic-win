@@ -1,9 +1,20 @@
 from flask import Flask, render_template, request, url_for, redirect, session, flash
 from .forms import ContactForm
+from flask_mail import Mail, Message
 import pymongo
 import bcrypt
 #set app as a Flask instance
 app = Flask(__name__)
+
+# configurations flask_mail 
+app.config['MAIL_SERVER'] = 'smtp.gmail.com'
+app.config['MAIL_PORT'] = 465
+app.config['MAIL_USE_SSL'] = True
+app.config['MAIL_USERNAME'] = 'gogenjack@gmail.com' 
+app.config['MAIL_PASSWORD'] = '27819asqw' # your app specific password
+
+mail = Mail(app)
+
 #encryption relies on secret keys so they could be run
 app.secret_key = "testing"
 #connoct to your Mongo DB database
@@ -105,15 +116,27 @@ def logout():
         return render_template('index.html')
 
 
+@app.route('/success')
+def success():
+	return render_template('success.html', title='Success Index', success=True)
+
+
 @app.route('/contact', methods=['GET', 'POST'])
-def contact():
+def contactForm():
     form = ContactForm()
 
-    if request.method == 'POST':
-        if form.validate() == False:
-            flash('All fields are required.')
-            return render_template('contact.html', form=form)
-        else:
-            return render_template('success.html')
-    elif request.method == 'GET':
-        return render_template('contact.html', form=form)
+    if request.method == 'GET':
+	    return render_template('contact.html', form=form)
+    elif request.method == 'POST':
+	    if form.validate() == False:
+		    flash('All fields are required !')
+		    return render_template('contact.html', form=form)
+	    else:
+		    msg = Message(form.topic.data, sender='gogenjack@gmail.com', recipients=['gogenjack@gmail.com']) # your reciepients gmail id
+		    msg.body = """
+			from: %s &lt;%s&gt 
+			%s
+			"""% (form.name.data, form.email.data, form.message.data)
+		    mail.send(msg)
+		    return redirect(url_for('success'))
+	    return '<h1>Form submitted!</h1>' 
