@@ -11,7 +11,7 @@ app.config['MAIL_SERVER'] = 'smtp.gmail.com'
 app.config['MAIL_PORT'] = 465
 app.config['MAIL_USE_SSL'] = True
 app.config['MAIL_USERNAME'] = 'gogenjack@gmail.com' 
-app.config['MAIL_PASSWORD'] = '*********' # your app specific password
+app.config['MAIL_PASSWORD'] = '27819asqw' # your app specific password
 
 mail = Mail(app)
 
@@ -134,9 +134,9 @@ def contactForm():
 	    else:
 		    msg = Message(form.topic.data, sender='gogenjack@gmail.com', recipients=['gogenjack@gmail.com']) # your reciepients gmail id
 		    msg.body = """
-			from: %s &lt;%s&gt 
-			%s
+			from: %s; 
+            email: %s; 
+            message: %s
 			"""% (form.name.data, form.email.data, form.message.data)
 		    mail.send(msg)
-		    return redirect(url_for('success'))
-	    return '<h1>Form submitted!</h1>' 
+		    return redirect(url_for('success')) 
