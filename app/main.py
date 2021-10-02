@@ -2,6 +2,7 @@ from flask import Flask, render_template, request, url_for, redirect, session, f
 from .forms import ContactForm
 from flask_mail import Mail, Message
 import pymongo
+import certifi
 import bcrypt
 #set app as a Flask instance
 app = Flask(__name__)
@@ -19,8 +20,7 @@ mail = Mail(app)
 app.secret_key = "testing"
 #connoct to your Mongo DB database
 client = pymongo.MongoClient(
-    "mongodb+srv://eugene_ivashkevich:wpLV8ZJcC1spQoc6@aic-win.ku48g.mongodb.net/aic-win?retryWrites=true&w=majority"
-)
+    "mongodb+srv://eugene_ivashkevich:wpLV8ZJcC1spQoc6@aic-win.ku48g.mongodb.net/aic-win?retryWrites=true&w=majority", tlsCAFile=certifi.where())
 
 #get the database name
 db = client.get_database('total_records')
