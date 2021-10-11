@@ -1,3 +1,4 @@
+from bson.objectid import ObjectId
 from flask import Flask, jsonify, render_template, request, url_for, redirect, session, flash
 from .forms import ContactForm
 from flask_mail import Mail, Message
@@ -23,82 +24,88 @@ app.secret_key = "testing"
 client = pymongo.MongoClient(host="localhost", port=27017)
 dbaic = client.dbaic
 users = dbaic.users  
-customers = users.customers  
-clients = customers.clients
+# customers = users.customers  
+# clients = customers.clients
 
 
-# @app.route("/registration", methods=['POST'])
-# def registration():
-#     record = request.get_json()
-#     email = record['email']
-#     password = record['password']
-#     name = record['name']
-#     registration_type = 'email'
-#     user = User.objects(email=email, registration_type=registration_type).first()
-#     if user:
-#         return jsonify({"msg": "User is alredy"}), 409
-#     else:
-#         if password:
-#             user = save_user(name, email, registration_type, password)
-#             return user
+@app.route("/registration", methods=['POST'])
+def registration():
+    email = request.json['email']
+    password = request.json['password']
+    # password_two = request.json['password_two']
+    check = users.find_one({"email": email})
+    if check:
+        return jsonify(messanger = "Пользователь с данным email уже зарегистрирован")
+    else:
+        user_info = dict(email=email)
+        users.insert_one(user_info)
+        return jsonify(messanger = "Пользователь успешно добавлен") 
 
-#     users.accountants.insert_one({'title_': "todo title", 'body': "todo body"})
-#     return Flask.jsonify(message="success")
-
-
-@app.route("/add_one")
-def add_one():
-    dbaic.customers.insert_one({'title': "todo title", 'body': "todo body"})
-    return Flask.jsonify(message="success")
+    # return email        
+    # elif password != password_two:
+    #     return jsonify(messanger = "Пароли не совпадают")
+    # else:
+    #     return jsonify(messanger = "Давайте познакомимся")
 
 
-@app.route("/add_many")
-def add_many():
-    try:
-        todo_many = dbaic.todos.insert_many([
-            {'_id': 1, 'title': "todo title one ", 'body': "todo body one "},
-            {'_id': 8, 'title': "todo title two", 'body': "todo body two"},
-            {'_id': 2, 'title': "todo title three", 'body': "todo body three"},
-            {'_id': 9, 'title': "todo title four", 'body': "todo body four"},
-            {'_id': 10, 'title': "todo title five", 'body': "todo body five"},
-            {'_id': 5, 'title': "todo title six", 'body': "todo body six"},
-        ], ordered=False) # вставит только действительные и уникальные записи 
-    except BulkWriteError as e:
-        return Flask.jsonify(message="duplicates encountered and ignored",
-                             details=e.details,
-                             inserted=e.details['nInserted'],
-                             duplicates=[x['op'] for x in e.details['writeErrors']])
+@app.route("/customer", methods=['POST', 'GET', 'PUT'])
+def customer():
+    user_id = request.json['_id']
+    customer_data = {
+        "_id": "123", # Вопрос реализации ч/з id и вложенность 
+        "type_customer": request.json["type_customer"],
+        "name_customer": request.json["name_customer"],
+        "number_customer": request.json["number_customer"],
+            }
+    dbaic.users.update(
+        {"_id": ObjectId(user_id)},
+        {"$set": {"customer_data": customer_data}}
+    )
+    return jsonify(messanger = "Заказчик добавлен")
 
-    return Flask.jsonify(message="success", insertedIds=todo_many.inserted_ids)
+
+@app.route("/clients", methods=['POST', 'GET', 'PUT'])
+def clients():
+    customer_id = request.json['_id']
+    client_data = {
+        "type_client": request.json["type_client"],
+        "name_client": request.json["name_client"],
+        "number_client": request.json["number_client"],
+            }
+    dbaic.users.update(
+        {"_id": ObjectId(customer_id)},
+        {"$set": {"client_data": client_data}}
+    )
+    return jsonify(messanger = "Контрагент добавлен")
 
 
 @app.route("/")
 def home():
-    todos = dbaic.todos.find()
-    return Flask.jsonify([todo for todo in todos])
+    users = dbaic.users.find()
+    return Flask.jsonify([user for user in users])
 
 
-@app.route("/get_todo/<int:todoId>")
-def insert_one(todoId):
-    todo = dbaic.todos.find_one({"_id": todoId})
-    return todo
+@app.route("/user_todo/<int:userId>")
+def insert_one(userId):
+    user = dbaic.users.find_one({"_id": userId})
+    return user
 
 
-@app.route("/replace_todo/<int:todoId>")
-def replace_one(todoId):
-    todo = dbaic.todos.find_one_and_replace({'_id': todoId}, {'title': "modified title"})
-    return todo
+@app.route("/replace_todo/<int:userId>")
+def replace_one(userId):
+    user = dbaic.users.find_one_and_replace({'_id': userId}, {'title': "modified title"})
+    return user
 
-@app.route("/update_todo/<int:todoId>")
-def update_one(todoId):
-    result = dbaic.todos.find_one_and_update({'_id': todoId}, {"$set": {'title': "updated title"}})
+@app.route("/update_user/<int:userId>")
+def update_one(userId):
+    result = dbaic.users.find_one_and_update({'_id': userId}, {"$set": {'title': "updated title"}})
     return result
 
 
 @app.route('/update_many')
 def update_many():
-    todo = dbaic.todos.update_many({'title' : 'todo title two'}, {"$set": {'body' : 'updated body'}})
-    return todo.raw_result 
+    user = dbaic.users.update_many({'title' : 'todo title two'}, {"$set": {'body' : 'updated body'}})
+    return user.raw_result 
 
 
 @app.route("/delete_todo/<int:todoId>", methods=['DELETE'])
