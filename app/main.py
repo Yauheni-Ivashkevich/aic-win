@@ -24,8 +24,8 @@ app.secret_key = "testing"
 client = pymongo.MongoClient(host="localhost", port=27017)
 dbaic = client.dbaic
 users = dbaic.users  
-# customers = users.customers  
-# clients = customers.clients
+customers = users.customers  
+clients = customers.clients
 
 
 @app.route("/registration", methods=['POST'])
@@ -40,86 +40,103 @@ def registration():
         user_info = dict(email=email)
         users.insert_one(user_info)
         return jsonify(messanger = "Пользователь успешно добавлен") 
-
-    # return email        
+    # # return email        
     # elif password != password_two:
     #     return jsonify(messanger = "Пароли не совпадают")
     # else:
     #     return jsonify(messanger = "Давайте познакомимся")
 
 
-@app.route("/customer", methods=['POST', 'GET', 'PUT'])
+@app.route("/add_customer", methods=['POST', 'GET', 'PUT'])
 def customer():
     user_id = request.json['_id']
     customer_data = {
-        "_id": "123", # Вопрос реализации ч/з id и вложенность 
-        "type_customer": request.json["type_customer"],
-        "name_customer": request.json["name_customer"],
-        "number_customer": request.json["number_customer"],
+        # "_id": request.json["_id_customer"],
+        "type_customer": request.json["type"],
+        "name_customer": request.json["name"],
+        "number_customer": request.json["number"],
             }
-    dbaic.users.update(
+    dbaic.users.customers.update_one(
         {"_id": ObjectId(user_id)},
-        {"$set": {"customer_data": customer_data}}
+        {"$addToSet": {"customer_data": customer_data}}
     )
     return jsonify(messanger = "Заказчик добавлен")
 
 
-@app.route("/clients", methods=['POST', 'GET', 'PUT'])
+@app.route("/add_clients", methods=['POST', 'GET', 'PUT'])
 def clients():
     customer_id = request.json['_id']
     client_data = {
-        "type_client": request.json["type_client"],
-        "name_client": request.json["name_client"],
-        "number_client": request.json["number_client"],
+        "_id": request.json["_id_client"],
+        "type_client": request.json["type"],
+        "name_client": request.json["name"],
+        "number_client": request.json["number"],
             }
-    dbaic.users.update(
+    dbaic.clients.update_one(
         {"_id": ObjectId(customer_id)},
-        {"$set": {"client_data": client_data}}
+        {"$addToSet": {"client_data": client_data}}
     )
     return jsonify(messanger = "Контрагент добавлен")
 
 
-@app.route("/")
+@app.route("/", methods=['POST', 'GET', 'PUT'])
 def home():
     users = dbaic.users.find()
     return Flask.jsonify([user for user in users])
 
 
-@app.route("/user_todo/<int:userId>")
-def insert_one(userId):
-    user = dbaic.users.find_one({"_id": userId})
-    return user
+@app.route("/add_many_customers", methods=['POST'])
+def add_many():
+    try:
+        todo_many = dbaic.customers.insert_many([
+            {"_id": 1, "type_customer": "type", "name_customer": "name", "number_customer": "number"},
+            {"_id": 2, "type_customer": "type", "name_customer": "name", "number_customer": "number"},
+            {"_id": 3, "type_customer": "type", "name_customer": "name", "number_customer": "number"}
+        ], ordered=False)
+    except BulkWriteError as e:
+        return Flask.jsonify(message="duplicates encountered and ignored",
+                             details=e.details,
+                             inserted=e.details['nInserted'],
+                             duplicates=[x['op'] for x in e.details['writeErrors']])
+
+    return Flask.jsonify(message="success", insertedIds=todo_many.inserted_ids)
 
 
-@app.route("/replace_todo/<int:userId>")
-def replace_one(userId):
-    user = dbaic.users.find_one_and_replace({'_id': userId}, {'title': "modified title"})
-    return user
+@app.route("/get_customer/<int:customerId>", methods=['GET'])
+def insert_one(customerId):
+    customer = dbaic.customers.find_one({"_id": customerId})
+    return customer
 
-@app.route("/update_user/<int:userId>")
-def update_one(userId):
-    result = dbaic.users.find_one_and_update({'_id': userId}, {"$set": {'title': "updated title"}})
+
+@app.route("/replace_customer/<int:customerId>", methods=['PUT'])
+def replace_one(customerId):
+    customer = dbaic.customers.find_one_and_replace({"_id": customerId}, {"type_customer": "type"})
+    return customer
+
+@app.route("/update_customer/<int:customerId>", methods=['PUT'])
+def update_one(customerId):
+    result = dbaic.customers.find_one_and_update({'_id': customerId}, {"$set": {"type_customer": "updated type"}})
     return result
 
 
-@app.route('/update_many')
+@app.route('/update_many', methods=['PUT'])
 def update_many():
-    user = dbaic.users.update_many({'title' : 'todo title two'}, {"$set": {'body' : 'updated body'}})
-    return user.raw_result 
+    customer = dbaic.customers.update_many({"type_customer": "type"}, {"$set": {"type_customer": "updated type"}})
+    return customer.raw_result 
 
 
-@app.route("/delete_todo/<int:todoId>", methods=['DELETE'])
-def delete_todo(todoId):
-    todo = dbaic.todos.find_one_and_delete({'_id': todoId})
-    if todo is not None:
-        return todo.raw_result
+@app.route("/delete_customer/<int:customerId>", methods=['DELETE'])
+def delete_todo(customerId):
+    customer = dbaic.customers.find_one_and_delete({'_id': customerId}) 
+    if customer is not None:
+        return customer.raw_result
     return "ID does not exist"
 
 
 @app.route('/delete_many', methods=['DELETE'])
 def delete_many():
-    todo = dbaic.todos.delete_many({'title': 'todo title two'})
-    return todo.raw_result
+    customer = dbaic.customers.delete_many({"type_customer": "type"})
+    return customer.raw_result
 
 
 @app.route("/save_file", methods=['POST', 'GET'])
