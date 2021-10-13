@@ -37,14 +37,14 @@ def registration():
     if check:
         return jsonify(messanger = "Пользователь с данным email уже зарегистрирован")
     else:
-        user_info = dict(email=email)
+        user_info = dict(email=email) #, password=password, password_two=password_two) 
         users.insert_one(user_info)
         return jsonify(messanger = "Пользователь успешно добавлен") 
-    # # return email        
+    # return email        
     # elif password != password_two:
     #     return jsonify(messanger = "Пароли не совпадают")
     # else:
-    #     return jsonify(messanger = "Давайте познакомимся")
+        return jsonify(messanger = "Давайте познакомимся")
 
 
 @app.route("/add_customer", methods=['POST', 'GET', 'PUT'])
