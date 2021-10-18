@@ -2,11 +2,16 @@ from bson.objectid import ObjectId
 from flask import Flask, jsonify, render_template, request, url_for, redirect, session, flash
 from .forms import ContactForm
 from flask_mail import Mail, Message
+from flask_jwt_extended import JWTManager, jwt_required, create_access_token 
 import pymongo
 from pymongo.errors import BulkWriteError
 import bcrypt
 #set app as a Flask instance
 app = Flask(__name__)
+jwt = JWTManager(app) 
+
+# JWT Config
+app.config["JWT_SECRET_KEY"] = "this-is-secret-key" #change it
 
 # configurations flask_mail 
 app.config['MAIL_SERVER'] = 'smtp.gmail.com'
@@ -20,41 +25,62 @@ mail = Mail(app)
 #encryption relies on secret keys so they could be run
 app.secret_key = "testing"
 #connect to your Mongo DB database
-# app.config["MONGO_URI"] = "mongodb+srv://eugene_ivashkevich:wpLV8ZJcC1spQoc6@aic-win.ku48g.mongodb.net/aic-win?retryWrites=true&w=majority"
-client = pymongo.MongoClient(host="localhost", port=27017)
-dbaic = client.dbaic
-users = dbaic.users  
+client = pymongo.MongoClient("mongodb+srv://eugene_ivashkevich:wpLV8ZJcC1spQoc6@aic-win.ku48g.mongodb.net/aic-win?retryWrites=true&w=majority")
+# client = pymongo.MongoClient(host="localhost", port=27017)
+# database 
+dbaic = client.get_database("dbaic") 
+# collection 
+users = dbaic["Users"]   
 customers = users.customers  
 clients = customers.clients
 
 
+@app.route("/")
+@jwt_required()
+def index():
+    return '<h2>AIC - программа автоматизации ведения и подачи бухгалтерской отчётности для ИП!</h2>'
+
+
 @app.route("/registration", methods=['POST'])
 def registration():
-    email = request.json['email']
-    password = request.json['password']
-    # password_two = request.json['password_two']
-    check = users.find_one({"email": email})
+    email = request.form["email"]
+    # test = User.query.filter_by(email=email).first()
+    check = users.find_one({"email": email}) # найти email в database 
     if check:
-        return jsonify(messanger = "Пользователь с данным email уже зарегистрирован")
+        return jsonify(message = "Пользователь с данным email уже зарегистрирован"), 409        
     else:
-        user_info = dict(email=email) #, password=password, password_two=password_two) 
-        users.insert_one(user_info)
-        return jsonify(messanger = "Пользователь успешно добавлен") 
-    # return email        
-    # elif password != password_two:
-    #     return jsonify(messanger = "Пароли не совпадают")
-    # else:
-        return jsonify(messanger = "Давайте познакомимся")
+        full_name = request.form["full_name"]
+        password = request.form["password"]        
+        user_info = dict(full_name=full_name, email=email, password=password) 
+        users.insert_one(user_info) # добавить user_info в database 
+        return jsonify(message="Пользователь успешно добавлен"), 201
+
+
+@app.route("/login", methods=["POST"])
+def login():
+    if request.is_json:
+        email = request.json["email"]
+        password = request.json["password"]
+    else:
+        email = request.form["email"]
+        password = request.form["password"]
+
+    check = users.find_one({"email": email,"password":password})
+    if check:
+        access_token = create_access_token(identity=email)
+        return jsonify(message="Пользователь успешно добавлен!", access_token=access_token), 201
+    else:
+        return jsonify(message="Неверный email или password!"), 401 
 
 
 @app.route("/add_customer", methods=['POST', 'GET', 'PUT'])
 def customer():
     user_id = request.json['_id']
     customer_data = {
-        # "_id": request.json["_id_customer"],
-        "type_customer": request.json["type"],
-        "name_customer": request.json["name"],
-        "number_customer": request.json["number"],
+        "_id": request.form["_id_customer"],
+        "type_customer": request.form["type"],
+        "name_customer": request.form["name"],
+        "number_customer": request.form["number"],
             }
     dbaic.users.customers.update_one(
         {"_id": ObjectId(user_id)},
@@ -67,10 +93,10 @@ def customer():
 def clients():
     customer_id = request.json['_id']
     client_data = {
-        "_id": request.json["_id_client"],
-        "type_client": request.json["type"],
-        "name_client": request.json["name"],
-        "number_client": request.json["number"],
+        "_id": request.form["_id_client"],
+        "type_client": request.form["type"],
+        "name_client": request.form["name"],
+        "number_client": request.form["number"],
             }
     dbaic.clients.update_one(
         {"_id": ObjectId(customer_id)},
