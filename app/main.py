@@ -30,7 +30,7 @@ client = pymongo.MongoClient("mongodb+srv://eugene_ivashkevich:wpLV8ZJcC1spQoc6@
 # database 
 dbaic = client.get_database("dbaic") 
 # collection 
-users = dbaic["Users"]   
+users = dbaic["users"]   
 customers = users.customers  
 clients = customers.clients
 
@@ -75,34 +75,34 @@ def login():
 
 @app.route("/add_customer", methods=['POST', 'GET', 'PUT'])
 def customer():
-    user_id = request.json['_id']
+    user_id = request.form.get("_id'")
     customer_data = {
-        "_id": request.form["_id_customer"],
-        "type_customer": request.form["type"],
-        "name_customer": request.form["name"],
-        "number_customer": request.form["number"],
+        "_id_customer": request.form.get("_id_customer"),
+        "type_customer": request.form.get("type"),
+        "name_customer": request.form.get("name"),
+        "number_customer": request.form.get("number"), 
             }
-    dbaic.users.customers.update_one(
+    dbaic.users.update_one(
         {"_id": ObjectId(user_id)},
         {"$addToSet": {"customer_data": customer_data}}
     )
-    return jsonify(messanger = "Заказчик добавлен")
+    return jsonify(messanger = "Заказчик добавлен"), 201
 
 
 @app.route("/add_clients", methods=['POST', 'GET', 'PUT'])
 def clients():
-    customer_id = request.json['_id']
+    customer_id = request.form.get("_id")
     client_data = {
-        "_id": request.form["_id_client"],
-        "type_client": request.form["type"],
-        "name_client": request.form["name"],
-        "number_client": request.form["number"],
+        "_id": request.form.get("_id_client"),
+        "type_client": request.form.get("type"),
+        "name_client": request.form.get("name"),
+        "number_client": request.form.get("number"),
             }
     dbaic.clients.update_one(
         {"_id": ObjectId(customer_id)},
         {"$addToSet": {"client_data": client_data}}
     )
-    return jsonify(messanger = "Контрагент добавлен")
+    return jsonify(messanger = "Контрагент добавлен"), 201
 
 
 @app.route("/", methods=['POST', 'GET', 'PUT'])
