@@ -43,14 +43,14 @@ def index():
 
 @app.route("/registration", methods=['POST'])
 def registration():
-    email = request.form["email"]
+    email = request.json["email"]
     # test = User.query.filter_by(email=email).first()
     check = users.find_one({"email": email}) # найти email в database 
     if check:
         return jsonify(message = "Пользователь с данным email уже зарегистрирован"), 409        
     else:
-        full_name = request.form["full_name"]
-        password = request.form["password"]        
+        full_name = request.json["full_name"]
+        password = request.json["password"]        
         user_info = dict(full_name=full_name, email=email, password=password) 
         users.insert_one(user_info) # добавить user_info в database 
         return jsonify(message="Пользователь успешно добавлен"), 201
@@ -62,8 +62,8 @@ def login():
         email = request.json["email"]
         password = request.json["password"]
     else:
-        email = request.form["email"]
-        password = request.form["password"]
+        email = request.json["email"]
+        password = request.json["password"]
 
     check = users.find_one({"email": email,"password":password})
     if check:
@@ -75,12 +75,12 @@ def login():
 
 @app.route("/add_customer", methods=['POST', 'GET', 'PUT'])
 def customer():
-    user_id = request.form.get("_id'")
+    user_id = request.json["_id"]
     customer_data = {
-        "_id_customer": request.form.get("_id_customer"),
-        "type_customer": request.form.get("type"),
-        "name_customer": request.form.get("name"),
-        "number_customer": request.form.get("number"), 
+        "_id_customer": request.json["_id_customer"],
+        "type_customer": request.json["type_customer"],
+        "name_customer": request.json["name_customer"],
+        "number_customer": request.json["number_customer"], 
             }
     dbaic.users.update_one(
         {"_id": ObjectId(user_id)},
@@ -91,12 +91,12 @@ def customer():
 
 @app.route("/add_clients", methods=['POST', 'GET', 'PUT'])
 def clients():
-    customer_id = request.form.get("_id")
+    customer_id = request.json["_id_customer"]
     client_data = {
-        "_id": request.form.get("_id_client"),
-        "type_client": request.form.get("type"),
-        "name_client": request.form.get("name"),
-        "number_client": request.form.get("number"),
+        "_id_client": request.json["_id_client"],
+        "type_client": request.json["type_client"],
+        "name_client": request.json["name_client"],
+        "number_client": request.json["number_client"],
             }
     dbaic.clients.update_one(
         {"_id": ObjectId(customer_id)},
