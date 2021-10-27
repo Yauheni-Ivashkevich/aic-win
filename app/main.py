@@ -85,7 +85,7 @@ def customer():
             }
     dbaic.users.update_one(
         {"_id": ObjectId(user_id)},
-        {"$addToSet": {"customer_data": customer_data}}
+        {"$set": {"customer_data": customer_data}}
     )
     return jsonify(messanger = "Заказчик добавлен"), 201
 
@@ -101,7 +101,7 @@ def clients():
             }
     dbaic.clients.update_one(
         {"_id": customer_id},
-        {"$addToSet": {"client_data": client_data}}
+        {"$set": {"client_data": client_data}}
     )
     return jsonify(messanger = "Контрагент добавлен"), 201
 
