@@ -6,6 +6,7 @@ from flask_jwt_extended import JWTManager, jwt_required, create_access_token
 import pymongo
 from pymongo.errors import BulkWriteError
 import bcrypt
+import datetime 
 #set app as a Flask instance
 app = Flask(__name__)
 jwt = JWTManager(app) 
@@ -77,7 +78,7 @@ def login():
 def customer():
     user_id = request.json["_id"]
     customer_data = {
-        "_id_customer": request.json["_id_customer"],
+        "_id_customer": datetime.datetime.now().strftime('%a%Y%m%d%H%M%S%f%%'),# Создать уникальный идентификатор
         "type_customer": request.json["type_customer"],
         "name_customer": request.json["name_customer"],
         "number_customer": request.json["number_customer"], 
@@ -93,7 +94,7 @@ def customer():
 def clients():
     customer_id = request.json["_id_customer"]
     client_data = {
-        "_id_client": request.json["_id_client"],
+        "_id_client": datetime.datetime.now().strftime('%a%Y%m%d%H%M%S%f%%'),# Создать уникальный идентификатор
         "type_client": request.json["type_client"],
         "name_client": request.json["name_client"],
         "number_client": request.json["number_client"],
