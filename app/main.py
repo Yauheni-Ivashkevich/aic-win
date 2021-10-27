@@ -100,7 +100,7 @@ def clients():
         "number_client": request.json["number_client"],
             }
     dbaic.clients.update_one(
-        {"_id": ObjectId(customer_id)},
+        {"_id": customer_id},
         {"$addToSet": {"client_data": client_data}}
     )
     return jsonify(messanger = "Контрагент добавлен"), 201
