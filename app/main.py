@@ -1,11 +1,21 @@
-from flask import Flask, render_template, request, url_for, redirect, session, flash
+from bson.objectid import ObjectId
+from flask import Flask, jsonify, render_template, request, url_for, redirect, session, flash
 from .forms import ContactForm
 from flask_mail import Mail, Message
+from flask_jwt_extended import JWTManager, jwt_required, create_access_token 
 import pymongo
+
+from pymongo.errors import BulkWriteError
 import certifi
+
 import bcrypt
+import datetime 
 #set app as a Flask instance
 app = Flask(__name__)
+jwt = JWTManager(app) 
+
+# JWT Config
+app.config["JWT_SECRET_KEY"] = "this-is-secret-key" #change it
 
 # configurations flask_mail 
 app.config['MAIL_SERVER'] = 'smtp.gmail.com'
@@ -18,6 +28,23 @@ mail = Mail(app)
 
 #encryption relies on secret keys so they could be run
 app.secret_key = "testing"
+
+#connect to your Mongo DB database
+client = pymongo.MongoClient("mongodb+srv://eugene_ivashkevich:wpLV8ZJcC1spQoc6@aic-win.ku48g.mongodb.net/aic-win?retryWrites=true&w=majority")
+# client = pymongo.MongoClient(host="localhost", port=27017)
+# database 
+dbaic = client.get_database("dbaic") 
+# collection 
+users = dbaic["users"]   
+customers = users.customers  
+clients = customers.clients
+
+
+@app.route("/")
+@jwt_required()
+def index():
+    return '<h2>AIC - программа автоматизации ведения и подачи бухгалтерской отчётности для ИП!</h2>'
+
 #connoct to your Mongo DB database
 client = pymongo.MongoClient(
     "mongodb+srv://eugene_ivashkevich:wpLV8ZJcC1spQoc6@aic-win.ku48g.mongodb.net/aic-win?retryWrites=true&w=majority", tlsCAFile=certifi.where())
@@ -28,94 +55,154 @@ db = client.get_database('total_records')
 records = db.register
 
 
-#assign URLs to have a particular route
-@app.route("/", methods=['post', 'get'])
-def index():
-    message = ''
-    #if method post in index
-    if "email" in session:
-        return redirect(url_for("logged_in"))
-    if request.method == "POST":
-        user = request.form.get("fullname")
-        email = request.form.get("email")
-        password1 = request.form.get("password1")
-        password2 = request.form.get("password2")
-        #if found in database showcase that it's found
-        user_found = records.find_one({"name": user})
-        email_found = records.find_one({"email": email})
-        if user_found:
-            message = 'There already is a user by that name'
-            return render_template('index.html', message=message)
-        if email_found:
-            message = 'This email already exists in database'
-            return render_template('index.html', message=message)
-        if password1 != password2:
-            message = 'Passwords should match!'
-            return render_template('index.html', message=message)
-        else:
-            #hash the password and encode it
-            hashed = bcrypt.hashpw(password2.encode('utf-8'), bcrypt.gensalt())
-            #assing them in a dictionary in key value pairs
-            user_input = {'name': user, 'email': email, 'password': hashed}
-            #insert it in the record collection
-            records.insert_one(user_input)
 
-            #find the new created account and its email
-            user_data = records.find_one({"email": email})
-            new_email = user_data['email']
-            #if registered redirect to logged in as the registered user
-            return render_template('logged_in.html', email=new_email)
-    return render_template('index.html')
+@app.route("/registration", methods=['POST'])
+def registration():
+    email = request.json["email"]
+    # test = User.query.filter_by(email=email).first()
+    check = users.find_one({"email": email}) # найти email в database 
+    if check:
+        return jsonify(message = "Пользователь с данным email уже зарегистрирован"), 409        
+    else:
+        full_name = request.json["full_name"]
+        password = request.json["password"]        
+        user_info = dict(full_name=full_name, email=email, password=password) 
+        users.insert_one(user_info) # добавить user_info в database 
+        return jsonify(message="Пользователь успешно добавлен"), 201
 
 
-@app.route("/login", methods=["POST", "GET"])
+@app.route("/login", methods=["POST"])
 def login():
-    message = 'Please login to your account'
-    if "email" in session:
-        return redirect(url_for("logged_in"))
-
-    if request.method == "POST":
-        email = request.form.get("email")
-        password = request.form.get("password")
-
-        #check if email exists in database
-        email_found = records.find_one({"email": email})
-        if email_found:
-            email_val = email_found['email']
-            passwordcheck = email_found['password']
-            #encode the password and check if it matches
-            if bcrypt.checkpw(password.encode('utf-8'), passwordcheck):
-                session["email"] = email_val
-                return redirect(url_for('logged_in'))
-            else:
-                if "email" in session:
-                    return redirect(url_for("logged_in"))
-                message = 'Wrong password'
-                return render_template('login.html', message=message)
-        else:
-            message = 'Email not found'
-            return render_template('login.html', message=message)
-    return render_template('login.html', message=message)
-
-
-@app.route('/logged_in')
-def logged_in():
-    if "email" in session:
-        email = session["email"]
-        return render_template('logged_in.html', email=email)
+    if request.is_json:
+        email = request.json["email"]
+        password = request.json["password"]
     else:
-        return redirect(url_for("login"))
+        email = request.json["email"]
+        password = request.json["password"]
 
-
-@app.route("/logout", methods=["POST", "GET"])
-def logout():
-    if "email" in session:
-        session.pop("email", None)
-        return render_template("signout.html")
+    check = users.find_one({"email": email,"password":password})
+    if check:
+        access_token = create_access_token(identity=email)
+        return jsonify(message="Пользователь успешно добавлен!", access_token=access_token), 201
     else:
-        return render_template('index.html')
+        return jsonify(message="Неверный email или password!"), 401 
 
 
+@app.route("/add_customer", methods=['POST', 'GET', 'PUT'])
+def customer():
+    user_id = request.json["_id"]
+    customer_data = {
+        "_id_customer": datetime.datetime.now().strftime('%a%Y%m%d%H%M%S%f%%'),# Создать уникальный идентификатор
+        "type_customer": request.json["type_customer"],
+        "name_customer": request.json["name_customer"],
+        "number_customer": request.json["number_customer"], 
+            }
+    dbaic.users.update_one(
+        {"_id": ObjectId(user_id)},
+        {"$set": {"customer_data": customer_data}}
+    )
+    return jsonify(messanger = "Заказчик добавлен"), 201
+
+
+@app.route("/add_clients", methods=['POST', 'GET', 'PUT'])
+def clients():
+    customer_id = request.json["_id_customer"]
+    client_data = {
+        "_id_client": datetime.datetime.now().strftime('%a%Y%m%d%H%M%S%f%%'),# Создать уникальный идентификатор
+        "type_client": request.json["type_client"],
+        "name_client": request.json["name_client"],
+        "number_client": request.json["number_client"],
+            }
+    dbaic.clients.update_one(
+        {"customer_data._id": customer_id},
+        {"$set": {"client_data": client_data}}
+    )
+    return jsonify(messanger = "Контрагент добавлен"), 201
+
+
+@app.route("/", methods=['POST', 'GET', 'PUT'])
+def home():
+    users = dbaic.users.find()
+    return Flask.jsonify([user for user in users])
+
+
+@app.route("/add_many_customers", methods=['POST'])
+def add_many():
+    try:
+        todo_many = dbaic.customers.insert_many([
+            {"_id": 1, "type_customer": "type", "name_customer": "name", "number_customer": "number"},
+            {"_id": 2, "type_customer": "type", "name_customer": "name", "number_customer": "number"},
+            {"_id": 3, "type_customer": "type", "name_customer": "name", "number_customer": "number"}
+        ], ordered=False)
+    except BulkWriteError as e:
+        return Flask.jsonify(message="duplicates encountered and ignored",
+                             details=e.details,
+                             inserted=e.details['nInserted'],
+                             duplicates=[x['op'] for x in e.details['writeErrors']])
+
+    return Flask.jsonify(message="success", insertedIds=todo_many.inserted_ids)
+
+
+@app.route("/get_customer/<int:customerId>", methods=['GET'])
+def insert_one(customerId):
+    customer = dbaic.customers.find_one({"_id": customerId})
+    return customer
+
+
+@app.route("/replace_customer/<int:customerId>", methods=['PUT'])
+def replace_one(customerId):
+    customer = dbaic.customers.find_one_and_replace({"_id": customerId}, {"type_customer": "type"})
+    return customer
+
+@app.route("/update_customer/<int:customerId>", methods=['PUT'])
+def update_one(customerId):
+    result = dbaic.customers.find_one_and_update({'_id': customerId}, {"$set": {"type_customer": "updated type"}})
+    return result
+
+
+@app.route('/update_many', methods=['PUT'])
+def update_many():
+    customer = dbaic.customers.update_many({"type_customer": "type"}, {"$set": {"type_customer": "updated type"}})
+    return customer.raw_result 
+
+
+@app.route("/delete_customer/<int:customerId>", methods=['DELETE'])
+def delete_todo(customerId):
+    customer = dbaic.customers.find_one_and_delete({'_id': customerId}) 
+    if customer is not None:
+        return customer.raw_result
+    return "ID does not exist"
+
+
+@app.route('/delete_many', methods=['DELETE'])
+def delete_many():
+    customer = dbaic.customers.delete_many({"type_customer": "type"})
+    return customer.raw_result
+
+
+@app.route("/save_file", methods=['POST', 'GET'])
+def save_file():
+    upload_form = """<h1>Save file</h1>
+                     <form method="POST" enctype="multipart/form-data">
+                     <input type="file" name="file" id="file">
+                     <br><br>
+                     <input type="submit">
+                     </form>"""
+                     
+    if request.method=='POST':
+        if 'file' in request.files:
+            file = request.files['file']
+            client.save_file(file.filename, file)
+            return {"file name": file.filename}
+    return upload_form
+
+
+@app.route("/get_file/<filename>")
+def get_file(filename):
+    return client.send_file(filename) 
+
+
+# forms for flask_mail
 @app.route('/success')
 def success():
 	return render_template('success.html', title='Success Index', success=True)

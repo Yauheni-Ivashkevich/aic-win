@@ -14,9 +14,11 @@ bcrypt = "*"
 flask-wtf = "*"
 email-validator = "*"
 flask-mail = "*"
+
+flask-jwt-extended = "*"
+=======
 dnspython = "*"
 certifi = "*"
-
 [dev-packages]
 
 [requires]
