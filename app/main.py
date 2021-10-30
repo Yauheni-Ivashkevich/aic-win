@@ -4,7 +4,10 @@ from .forms import ContactForm
 from flask_mail import Mail, Message
 from flask_jwt_extended import JWTManager, jwt_required, create_access_token 
 import pymongo
+
 from pymongo.errors import BulkWriteError
+import certifi
+
 import bcrypt
 import datetime 
 #set app as a Flask instance
@@ -25,6 +28,7 @@ mail = Mail(app)
 
 #encryption relies on secret keys so they could be run
 app.secret_key = "testing"
+
 #connect to your Mongo DB database
 client = pymongo.MongoClient("mongodb+srv://eugene_ivashkevich:wpLV8ZJcC1spQoc6@aic-win.ku48g.mongodb.net/aic-win?retryWrites=true&w=majority")
 # client = pymongo.MongoClient(host="localhost", port=27017)
@@ -40,6 +44,16 @@ clients = customers.clients
 @jwt_required()
 def index():
     return '<h2>AIC - программа автоматизации ведения и подачи бухгалтерской отчётности для ИП!</h2>'
+
+#connoct to your Mongo DB database
+client = pymongo.MongoClient(
+    "mongodb+srv://eugene_ivashkevich:wpLV8ZJcC1spQoc6@aic-win.ku48g.mongodb.net/aic-win?retryWrites=true&w=majority", tlsCAFile=certifi.where())
+
+#get the database name
+db = client.get_database('total_records')
+#get the particular collection that contains the data
+records = db.register
+
 
 
 @app.route("/registration", methods=['POST'])
