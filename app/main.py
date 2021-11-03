@@ -95,11 +95,12 @@ def customer():
         "_id_customer": datetime.datetime.now().strftime('%a%Y%m%d%H%M%S%f%%'),# Создать уникальный идентификатор
         "type_customer": request.json["type_customer"],
         "name_customer": request.json["name_customer"],
-        "number_customer": request.json["number_customer"], 
+        "number_customer": request.json["number_customer"],
+        "client_data": [], 
             }
     dbaic.users.update_one(
         {"_id": ObjectId(user_id)},
-        {"$set": {"customer_data": customer_data}}
+        {"$push": {"customer_data": customer_data}}
     )
     return jsonify(messanger = "Заказчик добавлен"), 201
 
@@ -115,7 +116,7 @@ def clients():
             }
     dbaic.clients.update_one(
         {"customer_data._id": customer_id},
-        {"$set": {"client_data": client_data}}
+        {"$push": {"client_data": client_data}}
     )
     return jsonify(messanger = "Контрагент добавлен"), 201
 
