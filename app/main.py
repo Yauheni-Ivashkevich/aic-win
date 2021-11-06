@@ -96,7 +96,7 @@ def customer():
         "type_customer": request.json["type_customer"],
         "name_customer": request.json["name_customer"],
         "number_customer": request.json["number_customer"],
-        "client_data": [], 
+        # "client_data": [], 
             }
     dbaic.users.update_one(
         {"_id": ObjectId(user_id)},
@@ -104,21 +104,36 @@ def customer():
     )
     return jsonify(messanger = "Заказчик добавлен"), 201
 
-
+# реализация ч/з создание отдельной сущности "контрагенты = clients"
 @app.route("/add_clients", methods=['POST', 'GET', 'PUT'])
 def clients():
-    customer_id = request.json["_id_customer"]
-    client_data = {
-        "_id_client": datetime.datetime.now().strftime('%a%Y%m%d%H%M%S%f%%'),# Создать уникальный идентификатор
-        "type_client": request.json["type_client"],
-        "name_client": request.json["name_client"],
-        "number_client": request.json["number_client"],
-            }
-    dbaic.customers.clients.update_one(
-        {"customer_data": customer_id},
-        {"$set": {"customer_id.$[]": client_data}} 
-    )
-    return jsonify(messanger = "Контрагент добавлен"), 201
+    name_client = request.json["name_client"]
+    check = customers.clients.find_one({"name_client": name_client}) # найти name_client в database 
+    if check:
+        return jsonify(message = "Контрагент с данным именем уже зарегистрирован"), 409        
+    else:
+        name_client = request.json["name_client"] 
+        type_client = request.json["type_client"] 
+        number_client = request.json["number_client"]
+        client_data = dict(type_client=type_client, name_client=name_client, number_client=number_client)
+        dbaic.customers.clients.insert_one(client_data)
+        return jsonify(messanger = "Контрагент добавлен"), 201 
+
+
+# @app.route("/add_clients", methods=['POST', 'GET', 'PUT'])
+# def clients():
+#     customer_id = request.json["_id_customer"]
+#     client_data = {
+#         "_id_client": datetime.datetime.now().strftime('%a%Y%m%d%H%M%S%f%%'),# Создать уникальный идентификатор
+#         "type_client": request.json["type_client"],
+#         "name_client": request.json["name_client"],
+#         "number_client": request.json["number_client"],
+#             }
+#     dbaic.customers.clients.update_one(
+#         {"customer_data": customer_id},
+#         {"$set": {"customer_id.$[]": client_data}} 
+#     )
+#     return jsonify(messanger = "Контрагент добавлен"), 201
 
 
 @app.route("/", methods=['POST', 'GET', 'PUT'])
