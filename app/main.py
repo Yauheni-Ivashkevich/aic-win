@@ -111,12 +111,13 @@ def clients():
     check = customers.clients.find_one({"name_client": name_client}) # найти name_client в database 
     if check:
         return jsonify(message = "Контрагент с данным именем уже зарегистрирован"), 409        
-    else:
+    else:       
+        user_id = request.json["user_id"]  
         name_client = request.json["name_client"] 
         type_client = request.json["type_client"] 
         number_client = request.json["number_client"]
-        client_data = dict(type_client=type_client, name_client=name_client, number_client=number_client)
-        dbaic.customers.clients.insert_one(client_data)
+        client_data = dict(user_id=user_id,type_client=type_client, name_client=name_client, number_client=number_client)
+        dbaic.customers.clients.insert_one(client_data) 
         return jsonify(messanger = "Контрагент добавлен"), 201 
 
 
