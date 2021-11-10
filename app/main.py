@@ -45,16 +45,6 @@ clients = customers.clients
 def index():
     return '<h2>AIC - программа автоматизации ведения и подачи бухгалтерской отчётности для ИП!</h2>'
 
-#connoct to your Mongo DB database
-client = pymongo.MongoClient(
-    "mongodb+srv://eugene_ivashkevich:wpLV8ZJcC1spQoc6@aic-win.ku48g.mongodb.net/aic-win?retryWrites=true&w=majority", tlsCAFile=certifi.where())
-
-#get the database name
-db = client.get_database('total_records')
-#get the particular collection that contains the data
-records = db.register
-
-
 
 @app.route("/registration", methods=['POST'])
 def registration():
