@@ -6,7 +6,7 @@ from flask_jwt_extended import JWTManager, jwt_required, create_access_token
 import pymongo
 
 from pymongo.errors import BulkWriteError
-import certifi
+
 
 import bcrypt
 import datetime 
@@ -48,8 +48,7 @@ def index():
 
 @app.route("/registration", methods=['POST'])
 def registration():
-    email = request.json["email"]
-    # test = User.query.filter_by(email=email).first()
+    email = request.json["email"]    
     check = users.find_one({"email": email}) # найти email в database 
     if check:
         return jsonify(message = "Пользователь с данным email уже зарегистрирован"), 409        
@@ -85,8 +84,7 @@ def customer():
         "_id_customer": datetime.datetime.now().strftime('%a%Y%m%d%H%M%S%f%%'),# Создать уникальный идентификатор
         "type_customer": request.json["type_customer"],
         "name_customer": request.json["name_customer"],
-        "number_customer": request.json["number_customer"],
-        # "client_data": [], 
+        "number_customer": request.json["number_customer"], 
             }
     dbaic.users.update_one(
         {"_id": ObjectId(user_id)},
@@ -109,22 +107,6 @@ def clients():
         client_data = dict(user_id=user_id,type_client=type_client, name_client=name_client, number_client=number_client)
         dbaic.customers.clients.insert_one(client_data) 
         return jsonify(messanger = "Контрагент добавлен"), 201 
-
-
-# @app.route("/add_clients", methods=['POST', 'GET', 'PUT'])
-# def clients():
-#     customer_id = request.json["_id_customer"]
-#     client_data = {
-#         "_id_client": datetime.datetime.now().strftime('%a%Y%m%d%H%M%S%f%%'),# Создать уникальный идентификатор
-#         "type_client": request.json["type_client"],
-#         "name_client": request.json["name_client"],
-#         "number_client": request.json["number_client"],
-#             }
-#     dbaic.customers.clients.update_one(
-#         {"customer_data": customer_id},
-#         {"$set": {"customer_id.$[]": client_data}} 
-#     )
-#     return jsonify(messanger = "Контрагент добавлен"), 201
 
 
 @app.route("/", methods=['POST', 'GET', 'PUT'])
