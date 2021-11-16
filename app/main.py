@@ -8,14 +8,14 @@ import pymongo
 from pymongo.errors import BulkWriteError
 
 
-import bcrypt
+# import bcrypt
 import datetime 
-#set app as a Flask instance
+# set app as a Flask instance
 app = Flask(__name__)
 jwt = JWTManager(app) 
 
 # JWT Config
-app.config["JWT_SECRET_KEY"] = "this-is-secret-key" #change it
+app.config["JWT_SECRET_KEY"] = "this-is-secret-key" # change it
 
 # configurations flask_mail 
 app.config['MAIL_SERVER'] = 'smtp.gmail.com'
@@ -26,7 +26,7 @@ app.config['MAIL_PASSWORD'] = '********' # your app specific password
 
 mail = Mail(app)
 
-#encryption relies on secret keys so they could be run
+# encryption relies on secret keys so they could be run
 app.secret_key = "testing"
 
 #connect to your Mongo DB database
